@@ -62,7 +62,7 @@ config/
             ├── ili9341_test.overlay # 디바이스트리 오버레이 (SPI, ILI9341, XPT2046)
             └── ili9341_test.keymap  # 테스트 키맵 (D5 버튼 → Space)
 build.yaml                           # ZMK GitHub Actions 빌드 매트릭스
-west.yml                             # west 매니페스트 (ZMK 의존성)
+config/west.yml                      # west 매니페스트 (ZMK 의존성)
 .github/workflows/build.yml          # CI 워크플로
 ```
 
