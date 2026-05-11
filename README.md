@@ -86,7 +86,7 @@ west init -l config
 west update
 
 # 2. 빌드
-west build -p -b nice_nano_v2 -- -DSHIELD=ili9341_test
+west build -p -b nice_nano//zmk -- -DSHIELD=ili9341_test
 
 # 3. 결과물 업로드 (Nice Nano v2 리셋 버튼 더블클릭 후 나타나는 드라이브에 복사)
 cp build/zephyr/zmk.uf2 /media/<YOUR_DRIVE>/
