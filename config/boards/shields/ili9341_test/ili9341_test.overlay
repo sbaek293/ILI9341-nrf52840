@@ -1,0 +1,109 @@
+/*
+ * ILI9341 2.8" TFT + XPT2046 touch shield for Nice Nano v2 (nRF52840)
+ *
+ * Wiring (Nice Nano v2 label → ILI9341 pin):
+ *   3.3 V  → VCC, LED
+ *   GND    → GND
+ *   D2  (P0.17) → SCK   (shared SPI clock)
+ *   MOSI(P0.10) → SDI / T_DIN
+ *   MISO(P0.09) → SDO / T_DO
+ *   D10 (P1.11) → CS    (ILI9341 chip-select, active-low)
+ *   D9  (P1.06) → RESET (ILI9341 reset,        active-low)
+ *   D8  (P1.04) → DC    (data/command: low = command mode, high = data mode)
+ *   D7  (P0.11) → T_CS  (XPT2046 chip-select,   active-low)
+ *   D6  (P1.00) → T_IRQ (XPT2046 interrupt,     active-low)
+ *   D5  (P0.24) → test button (active-low, pull-up) – optional
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/nrf-pinctrl.h>
+
+/* ── chosen ──────────────────────────────────────────────────────────────── */
+/ {
+    chosen {
+        zmk,kscan    = &kscan0;
+        zephyr,display = &ili9341;
+    };
+
+    /* Single test button on D5 (P0.24) – press to generate a keypress */
+    kscan0: kscan0 {
+        compatible = "zmk,kscan-gpio-direct";
+        label = "KSCAN";
+        input-gpios = <&gpio0 24 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    };
+};
+
+/* ── pin-control ─────────────────────────────────────────────────────────── */
+&pinctrl {
+    /* SPIM1 default state */
+    spi1_default: spi1_default {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  0, 17)>,   /* P0.17 – D2  – SCK  */
+                    <NRF_PSEL(SPIM_MOSI, 0, 10)>,   /* P0.10 – MOSI       */
+                    <NRF_PSEL(SPIM_MISO, 0,  9)>;   /* P0.09 – MISO       */
+        };
+    };
+
+    /* SPIM1 sleep state (low-power) */
+    spi1_sleep: spi1_sleep {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  0, 17)>,
+                    <NRF_PSEL(SPIM_MOSI, 0, 10)>,
+                    <NRF_PSEL(SPIM_MISO, 0,  9)>;
+            low-power-enable;
+        };
+    };
+};
+
+/* ── SPI1 bus ─────────────────────────────────────────────────────────────── */
+&spi1 {
+    compatible    = "nordic,nrf-spim";
+    status        = "okay";
+    pinctrl-0     = <&spi1_default>;
+    pinctrl-1     = <&spi1_sleep>;
+    pinctrl-names = "default", "sleep";
+
+    /*
+     * cs-gpios index 0 → ILI9341 @0
+     * cs-gpios index 1 → XPT2046  @1
+     */
+    cs-gpios =
+        <&gpio1 11 GPIO_ACTIVE_LOW>,   /* P1.11 – D10 – ILI9341 CS  */
+        <&gpio0 11 GPIO_ACTIVE_LOW>;   /* P0.11 – D7  – XPT2046 CS  */
+
+    /* ── ILI9341 display ──────────────────────────────────────────────── */
+    ili9341: ili9341@0 {
+        compatible        = "ilitek,ili9341";
+        label             = "DISPLAY";
+        reg               = <0>;
+        spi-max-frequency = <25000000>;   /* 25 MHz */
+
+        reset-gpios    = <&gpio1 6 GPIO_ACTIVE_LOW>;   /* P1.06 – D9 – RST */
+        cmd-data-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;   /* P1.04 – D8 – DC  */
+
+        /* Portrait 240 × 320 */
+        width    = <240>;
+        height   = <320>;
+        rotation = <0>;
+        pixel-format = <0>;   /* 0 = RGB565 */
+    };
+
+    /* ── XPT2046 touch controller ─────────────────────────────────────── */
+    /*
+     * Enable by removing the leading "//" from each line below and setting
+     * CONFIG_INPUT=y / CONFIG_XPT2046=y in ili9341_test.conf
+     * (requires Zephyr ≥ 3.3 input subsystem).
+     */
+    // xpt2046: xpt2046@1 {
+    //     compatible        = "xptek,xpt2046";
+    //     label             = "TOUCH";
+    //     reg               = <1>;
+    //     spi-max-frequency = <2000000>;           /* 2 MHz */
+    //     int-gpios         = <&gpio1 0 GPIO_ACTIVE_LOW>; /* P1.00 – D6 – IRQ */
+    //     /* Raw ADC calibration values – tune to your panel */
+    //     touchscreen-min-x = <100>;
+    //     touchscreen-max-x = <3900>;
+    //     touchscreen-min-y = <100>;
+    //     touchscreen-max-y = <3900>;
+    // };
+};

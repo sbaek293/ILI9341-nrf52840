@@ -1,0 +1,12 @@
+if SHIELD_ILI9341_TEST
+
+config ZMK_KEYBOARD_NAME
+	default "ILI9341 Test"
+
+config ZMK_DISPLAY
+	default y
+
+config ZMK_DISPLAY_WORK_QUEUE_DEDICATED
+	default y
+
+endif # SHIELD_ILI9341_TEST
