@@ -86,6 +86,27 @@
         height   = <320>;
         rotation = <0>;
         pixel-format = <0>;   /* 0 = RGB565 */
+
+        /* ILI9341 register defaults explicitly set for Zephyr/ZMK main compatibility */
+        gamset        = [01];
+        ifmode        = [40];
+        ifctl         = [01 00 00];
+        pwctrla       = [39 2c 00 34 02];
+        pwctrlb       = [00 8b 30];
+        pwseqctrl     = [55 01 23 01];
+        timctrla      = [84 11 7a];
+        timctrlb      = [00 00];
+        pumpratioctrl = [10];
+        enable3g      = [02];
+        etmod         = [06];
+        frmctr1       = [00 1b];
+        disctrl       = [0a 82 27 04];
+        pwctrl1       = [21];
+        pwctrl2       = [10];
+        vmctrl1       = [31 3c];
+        vmctrl2       = [c0];
+        pgamctrl      = [0f 22 1f 0a 0e 06 4d 76 3b 03 0e 04 13 0e 0c];
+        ngamctrl      = [0c 23 26 04 10 04 39 24 4b 03 0b 0b 33 37 0f];
     };
 
     /* ── XPT2046 touch controller ─────────────────────────────────────── */
