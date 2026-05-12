@@ -1,24 +1,23 @@
 /*
- * ILI9341 2.8" TFT + XPT2046 touch shield for Nice Nano v2 (nRF52840)
+ * ILI9341 2.8" TFT shield for Nice Nano v2 (nRF52840)
+ * Uses the Zephyr MIPI DBI SPI interface (required by Zephyr v4.0+).
  *
  * Wiring (Nice Nano v2 label → ILI9341 pin):
  *   3.3 V  → VCC, LED
  *   GND    → GND
- *   D2  (P0.17) → SCK   (shared SPI clock)
- *   MOSI(P0.10) → SDI / T_DIN
- *   MISO(P0.09) → SDO / T_DO
+ *   D2  (P0.17) → SCK   (SPI clock)
+ *   MOSI(P0.10) → SDI
+ *   MISO(P0.09) → SDO   (unused with write-only; keep for possible future reads)
  *   D10 (P1.11) → CS    (ILI9341 chip-select, active-low)
- *   D9  (P1.06) → RESET (ILI9341 reset,        active-low)
- *   D8  (P1.04) → DC    (data/command: low = command mode, high = data mode)
- *   D7  (P0.11) → T_CS  (XPT2046 chip-select,   active-low)
- *   D6  (P1.00) → T_IRQ (XPT2046 interrupt,     active-low)
+ *   D9  (P1.06) → RESET (ILI9341 reset, active-low)
+ *   D8  (P1.04) → DC    (data/command: high = data, low = command)
  *   D5  (P0.24) → test button (active-low, pull-up) – optional
  */
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/nrf-pinctrl.h>
 
-/* ── chosen ──────────────────────────────────────────────────────────────── */
+/* ── chosen & root nodes ─────────────────────────────────────────────────── */
 / {
     chosen {
         zmk,kscan    = &kscan0;
@@ -30,6 +29,36 @@
         compatible = "zmk,kscan-gpio-direct";
         label = "KSCAN";
         input-gpios = <&gpio0 24 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    };
+
+    /*
+     * MIPI DBI SPI bridge for ILI9341.
+     * In Zephyr v4.0+, ili9xxx drivers require a parent MIPI DBI bus node
+     * (on-bus: mipi-dbi) instead of being placed directly on the SPI bus.
+     * The bridge references &spi1 via spi-dev and reads cs-gpios[0] from it
+     * to drive the ILI9341 chip-select.
+     */
+    mipi_dbi: mipi_dbi {
+        compatible = "zephyr,mipi-dbi-spi";
+        spi-dev = <&spi1>;
+        dc-gpios    = <&gpio1 4 GPIO_ACTIVE_HIGH>;  /* P1.04 – D8 – DC (high=data) */
+        reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;   /* P1.06 – D9 – RST             */
+        write-only;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        /* ── ILI9341 display ──────────────────────────────────────────── */
+        ili9341: ili9341@0 {
+            compatible        = "ilitek,ili9341";
+            reg               = <0>;
+            mipi-max-frequency = <25000000>;   /* 25 MHz */
+
+            /* Portrait 240 × 320 */
+            width        = <240>;
+            height       = <320>;
+            rotation     = <0>;
+            pixel-format = <0>;   /* 0 = RGB565 */
+        };
     };
 };
 
@@ -56,6 +85,11 @@
 };
 
 /* ── SPI1 bus ─────────────────────────────────────────────────────────────── */
+/*
+ * &spi1 has no direct SPI children; the ILI9341 is accessed through the
+ * mipi_dbi MIPI DBI SPI bridge above.  cs-gpios[0] is still required so
+ * that the MIPI_DBI_SPI_CONFIG_DT macro can resolve the ILI9341 CS GPIO.
+ */
 &spi1 {
     compatible    = "nordic,nrf-spim";
     status        = "okay";
@@ -63,68 +97,5 @@
     pinctrl-1     = <&spi1_sleep>;
     pinctrl-names = "default", "sleep";
 
-    /*
-     * cs-gpios index 0 → ILI9341 @0
-     * cs-gpios index 1 → XPT2046  @1
-     */
-    cs-gpios =
-        <&gpio1 11 GPIO_ACTIVE_LOW>,   /* P1.11 – D10 – ILI9341 CS  */
-        <&gpio0 11 GPIO_ACTIVE_LOW>;   /* P0.11 – D7  – XPT2046 CS  */
-
-    /* ── ILI9341 display ──────────────────────────────────────────────── */
-    ili9341: ili9341@0 {
-        compatible        = "ilitek,ili9341";
-        label             = "DISPLAY";
-        reg               = <0>;
-        spi-max-frequency = <25000000>;   /* 25 MHz */
-
-        reset-gpios    = <&gpio1 6 GPIO_ACTIVE_LOW>;   /* P1.06 – D9 – RST */
-        cmd-data-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;   /* P1.04 – D8 – DC  */
-
-        /* Portrait 240 × 320 */
-        width    = <240>;
-        height   = <320>;
-        rotation = <0>;
-        pixel-format = <0>;   /* 0 = RGB565 */
-
-        /* ILI9341 register defaults explicitly set for Zephyr/ZMK main compatibility */
-        gamset        = [01];
-        ifmode        = [40];
-        ifctl         = [01 00 00];
-        pwctrla       = [39 2c 00 34 02];
-        pwctrlb       = [00 8b 30];
-        pwseqctrl     = [55 01 23 01];
-        timctrla      = [84 11 7a];
-        timctrlb      = [00 00];
-        pumpratioctrl = [10];
-        enable3g      = [02];
-        etmod         = [06];
-        frmctr1       = [00 1b];
-        disctrl       = [0a 82 27 04];
-        pwctrl1       = [21];
-        pwctrl2       = [10];
-        vmctrl1       = [31 3c];
-        vmctrl2       = [c0];
-        pgamctrl      = [0f 22 1f 0a 0e 06 4d 76 3b 03 0e 04 13 0e 0c];
-        ngamctrl      = [0c 23 26 04 10 04 39 24 4b 03 0b 0b 33 37 0f];
-    };
-
-    /* ── XPT2046 touch controller ─────────────────────────────────────── */
-    /*
-     * Enable by removing the leading "//" from each line below and setting
-     * CONFIG_INPUT=y / CONFIG_XPT2046=y in ili9341_test.conf
-     * (requires Zephyr ≥ 3.3 input subsystem).
-     */
-    // xpt2046: xpt2046@1 {
-    //     compatible        = "xptek,xpt2046";
-    //     label             = "TOUCH";
-    //     reg               = <1>;
-    //     spi-max-frequency = <2000000>;           /* 2 MHz */
-    //     int-gpios         = <&gpio1 0 GPIO_ACTIVE_LOW>; /* P1.00 – D6 – IRQ */
-    //     /* Raw ADC calibration values – tune to your panel */
-    //     touchscreen-min-x = <100>;
-    //     touchscreen-max-x = <3900>;
-    //     touchscreen-min-y = <100>;
-    //     touchscreen-max-y = <3900>;
-    // };
+    cs-gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;   /* P1.11 – D10 – ILI9341 CS */
 };
