@@ -1,3 +1,0 @@
-# Load Sysbuild board Kconfig descriptions.
-osource "/home/runner/work/ILI9341-nrf52840/ILI9341-nrf52840/zmk/app/module/boards/nicekeyboards/nice_nano/Kconfig.sysbuild"
-osource "/home/runner/work/ILI9341-nrf52840/ILI9341-nrf52840/zmk/app/boards/nicekeyboards/nice_nano/Kconfig.sysbuild"

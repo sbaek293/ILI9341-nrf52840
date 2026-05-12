@@ -1,5 +1,0 @@
-west:
-  command: /home/runner/.local/bin/west build -p -s zmk/app -b nice_nano//zmk -- -DZMK_CONFIG=/home/runner/work/ILI9341-nrf52840/ILI9341-nrf52840/config
-    -DSHIELD=ili9341_test
-  topdir: /home/runner/work/ILI9341-nrf52840/ILI9341-nrf52840
-  version: 1.5.0
