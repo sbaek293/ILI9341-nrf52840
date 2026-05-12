@@ -109,6 +109,25 @@ XPT2046 터치 드라이버는 **Zephyr ≥ 3.3** (input subsystem)이 필요합
 
 ---
 
+## 흰 화면(White Screen) 디버깅 체크 / Debug Checklist
+
+현재 오버레이는 디버깅을 위해 아래와 같이 보수적으로 설정되어 있습니다.
+
+- `mipi-max-frequency = <8000000>` (8 MHz, 저속 SPI)
+- ILI9341 init register 배열(`ifmode`, `gamset`, `pgamctrl` 등) 명시
+
+확인 순서:
+
+1. 전원/접지: 3.3V, GND 공통 확인
+2. 제어선: `D10=CS`, `D9=RESET`, `D8=DC` 오배선 여부 확인
+3. SPI선: `D2=SCK`, `MOSI=SDI`, (선택) `MISO=SDO`
+4. LCD 컨트롤러 실제 칩셋이 ILI9341인지 확인
+
+디버깅이 끝나 통신이 안정적이면 `mipi-max-frequency`를 점진적으로 올려
+(`8 MHz → 12 MHz → 16 MHz → 25 MHz`) 동작 한계를 확인하세요.
+
+---
+
 ## 핀 변경 / Changing Pins
 
 `config/boards/shields/ili9341_test/ili9341_test.overlay` 파일의 `&pinctrl` 및  

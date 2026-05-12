@@ -51,13 +51,37 @@
         ili9341: ili9341@0 {
             compatible        = "ilitek,ili9341";
             reg               = <0>;
-            mipi-max-frequency = <25000000>;   /* 25 MHz */
+            mipi-max-frequency = <8000000>;    /* Debug-safe SPI clock */
 
             /* Portrait 240 × 320 */
             width        = <240>;
             height       = <320>;
             rotation     = <0>;
             pixel-format = <0>;   /* 0 = RGB565 */
+
+            /*
+             * Explicit register arrays for robust init with Zephyr v4.x and
+             * easier debug reproducibility across module variants.
+             */
+            ifmode       = [40];
+            ifctl        = [01 00 00];
+            pwctrla      = [39 2c 00 34 02];
+            pwctrlb      = [00 8b 30];
+            pwseqctrl    = [55 01 23 01];
+            timctrla     = [84 11 7a];
+            timctrlb     = [00 00];
+            pumpratioctrl = [10];
+            enable3g     = [02];
+            etmod        = [06];
+            gamset       = [01];
+            frmctr1      = [00 1b];
+            disctrl      = [0a 82 27 04];
+            pwctrl1      = [21];
+            pwctrl2      = [10];
+            vmctrl1      = [31 3c];
+            vmctrl2      = [c0];
+            pgamctrl     = [0f 22 1f 0a 0e 06 4d 76 3b 03 0e 04 13 0e 0c];
+            ngamctrl     = [0c 23 26 04 10 04 39 24 4b 03 0b 0b 33 37 0f];
         };
     };
 };
